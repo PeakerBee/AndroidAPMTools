@@ -15,21 +15,100 @@ typedef struct {
 
 Callback2Java *callback2Java;
 
-void on_start(const char * msg) {
 
+
+void on_start(const char* fmt, ...) {
+    if (fmt == NULL) {
+        jstring value = (callback2Java->jniEnv)->NewStringUTF("ping start");
+        (callback2Java->jniEnv)->CallVoidMethod(callback2Java->jObject, callback2Java->onStartMethodId, value);
+        return;
+    }
+
+    char buffer[512] = { 0 };
+    va_list aptr;
+    int ret;
+    va_start(aptr, fmt);
+    ret = vsprintf(buffer, fmt, aptr);
+    va_end(aptr);
+
+    if (ret > 0) {
+        jstring value = (callback2Java->jniEnv)->NewStringUTF(buffer);
+        (callback2Java->jniEnv)->CallVoidMethod(callback2Java->jObject, callback2Java->onStartMethodId, value);
+    } else {
+        jstring value = (callback2Java->jniEnv)->NewStringUTF("ping start");
+        (callback2Java->jniEnv)->CallVoidMethod(callback2Java->jObject, callback2Java->onStartMethodId, value);
+    }
 }
 
-void on_message(const char * msg) {
+void on_message(const char* fmt, ...) {
+    if (fmt == NULL) {
+        jstring value = (callback2Java->jniEnv)->NewStringUTF("");
+        (callback2Java->jniEnv)->CallVoidMethod(callback2Java->jObject, callback2Java->onMessageMethodId, value);
+        return;
+    }
 
+    char buffer[512] = { 0 };
+    va_list aptr;
+    int ret;
+    va_start(aptr, fmt);
+    ret = vsprintf(buffer, fmt, aptr);
+    va_end(aptr);
+
+    if (ret > 0) {
+        jstring value = (callback2Java->jniEnv)->NewStringUTF(buffer);
+        (callback2Java->jniEnv)->CallVoidMethod(callback2Java->jObject, callback2Java->onMessageMethodId, value);
+    } else {
+        jstring value = (callback2Java->jniEnv)->NewStringUTF("");
+        (callback2Java->jniEnv)->CallVoidMethod(callback2Java->jObject, callback2Java->onMessageMethodId, value);
+    }
 }
 
-void on_error(const char * error_msg, int error_code) {
+void on_error(const char* fmt, ...) {
+    if (fmt == NULL) {
+        jstring value = (callback2Java->jniEnv)->NewStringUTF("ping error");
+        (callback2Java->jniEnv)->CallVoidMethod(callback2Java->jObject, callback2Java->onErrorMethodId, value);
+        return;
+    }
 
+    char buffer[512] = { 0 };
+    va_list aptr;
+    int ret;
+    va_start(aptr, fmt);
+    ret = vsprintf(buffer, fmt, aptr);
+    va_end(aptr);
+
+    if (ret > 0) {
+        jstring value = (callback2Java->jniEnv)->NewStringUTF(buffer);
+        (callback2Java->jniEnv)->CallVoidMethod(callback2Java->jObject, callback2Java->onErrorMethodId, value);
+    } else {
+        jstring value = (callback2Java->jniEnv)->NewStringUTF("ping error");
+        (callback2Java->jniEnv)->CallVoidMethod(callback2Java->jObject, callback2Java->onErrorMethodId, value);
+    }
 }
 
-void on_end(const char * msg) {
+void on_end(const char* fmt, ...) {
+    if (fmt == NULL) {
+        jstring value = (callback2Java->jniEnv)->NewStringUTF("ping end");
+        (callback2Java->jniEnv)->CallVoidMethod(callback2Java->jObject, callback2Java->onEndMethodId, value);
+        return;
+    }
 
+    char buffer[512] = { 0 };
+    va_list aptr;
+    int ret;
+    va_start(aptr, fmt);
+    ret = vsprintf(buffer, fmt, aptr);
+    va_end(aptr);
+
+    if (ret > 0) {
+        jstring value = (callback2Java->jniEnv)->NewStringUTF(buffer);
+        (callback2Java->jniEnv)->CallVoidMethod(callback2Java->jObject, callback2Java->onEndMethodId, value);
+    } else {
+        jstring value = (callback2Java->jniEnv)->NewStringUTF("ping end");
+        (callback2Java->jniEnv)->CallVoidMethod(callback2Java->jObject, callback2Java->onEndMethodId, value);
+    }
 }
+
 
 extern "C" JNIEXPORT void JNICALL Java_com_chehejia_iot_ping_Ping_nativeStartPing(JNIEnv * env, jobject thiz, jobjectArray stringArray) {
     LOGD("nativeStartPing enter.");
@@ -41,7 +120,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_chehejia_iot_ping_Ping_nativeStartPin
 
     callback2Java->onStartMethodId =  env->GetMethodID(jClass, "nativeOnStart", "(Ljava/lang/String;)V");
     callback2Java->onMessageMethodId =  env->GetMethodID(jClass, "nativeOnMessage", "(Ljava/lang/String;)V");
-    callback2Java->onErrorMethodId =  env->GetMethodID(jClass, "nativeOnError", "(Ljava/lang/String;I)V");
+    callback2Java->onErrorMethodId =  env->GetMethodID(jClass, "nativeOnError", "(Ljava/lang/String;)V");
     callback2Java->onEndMethodId =  env->GetMethodID(jClass, "nativeOnEnd", "(Ljava/lang/String;)V");
 
     jsize stringArrayLength = env->GetArrayLength(stringArray);
@@ -65,6 +144,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_chehejia_iot_ping_Ping_nativeStartPin
     };
 
     LOGD("nativeStartPing start.");
+    ops.ping_start("ping start");
 
     ping(stringArrayLength + 1, args, &ops);
 
@@ -76,6 +156,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_chehejia_iot_ping_Ping_nativeStartPin
     LOGD("nativeStartPing end.");
 
 }
+
+
 
 
 

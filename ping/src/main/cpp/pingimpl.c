@@ -162,13 +162,14 @@ ping(int argc, char **argv, ping_ops *pingOps)
 			if (settos &&
 			    (setsockopt(icmp_sock, IPPROTO_IP, IP_TOS,
 					(char *)&settos, sizeof(int)) < 0)) {
-				ops->ping_error("ping: error setting QOS sockopts", 2);
-//				perror();
+				ops->ping_error("ping: error setting QOS sockopts");
+				perror("ping: error setting QOS sockopts");
 				return 2;
 			}
 			break;
 		case 'R':
 			if (options & F_TIMESTAMP) {
+				ops->ping_error("Only one of -T or -R may be used");
 				fprintf(stderr, "Only one of -T or -R may be used\n");
 				return 2;
 			}
@@ -176,6 +177,7 @@ ping(int argc, char **argv, ping_ops *pingOps)
 			break;
 		case 'T':
 			if (options & F_RROUTE) {
+				ops->ping_error("Only one of -T or -R may be used");
 				fprintf(stderr, "Only one of -T or -R may be used\n");
 				return 2;
 			}
@@ -187,6 +189,7 @@ ping(int argc, char **argv, ping_ops *pingOps)
 			else if (strcmp(optarg, "tsprespec") == 0)
 				ts_type = IPOPT_TS_PRESPEC;
 			else {
+				ops->ping_error("Invalid timestamp type");
 				fprintf(stderr, "Invalid timestamp type\n");
 				return 2;
 			}
@@ -225,12 +228,14 @@ ping(int argc, char **argv, ping_ops *pingOps)
 			else if (strcmp(optarg, "want") == 0)
 				pmtudisc = IP_PMTUDISC_WANT;
 			else {
+				ops->ping_error("ping: wrong value for -M: do, dont, want are valid ones.");
 				fprintf(stderr, "ping: wrong value for -M: do, dont, want are valid ones.\n");
 				return 2;
 			}
 			break;
 		case 'V':
 			printf("ping utility, iputils-%s\n", SNAPSHOT);
+			ops->ping_end("ping utility, iputils-%s", SNAPSHOT);
 			return 0;
 		COMMON_OPTIONS {
 			int result = common_options(ch);
@@ -253,16 +258,23 @@ ping(int argc, char **argv, ping_ops *pingOps)
 	}
 
 	if (argc > 1) {
-		if (options & F_RROUTE)
+		if (options & F_RROUTE) {
 			usage();
-		else if (options & F_TIMESTAMP) {
-			if (ts_type != IPOPT_TS_PRESPEC)
+			return -1;
+		} else if (options & F_TIMESTAMP) {
+			if (ts_type != IPOPT_TS_PRESPEC) {
 				usage();
-			if (argc > 5)
+				return -1;
+			}
+			if (argc > 5) {
 				usage();
+				return -1;
+			}
 		} else {
-			if (argc > 10)
+			if (argc > 10) {
 				usage();
+				return -1;
+			}
 			options |= F_SOURCEROUTE;
 		}
 	}
@@ -271,7 +283,6 @@ ping(int argc, char **argv, ping_ops *pingOps)
 
 		memset((char *)&whereto, 0, sizeof(whereto));
 		whereto.sin_family = AF_INET;
-        LOGD("hostname = %s", target);
 		if (inet_aton(target, &whereto.sin_addr) == 1) {
 			hostname = target;
 			if (argc == 1)
@@ -296,7 +307,8 @@ ping(int argc, char **argv, ping_ops *pingOps)
 #endif
 			hp = gethostbyname(idn);
 			if (!hp) {
-				printf("ping: unknown host %s\n", target);
+				ops->ping_end("ping: unknown host %s", target);
+				fprintf(stderr, "ping: unknown host %s\n", target);
 				return 2;
 			}
 #ifdef USE_IDN
@@ -1418,6 +1430,30 @@ void install_filter(void)
 #define USAGE_NEWLINE	"\n           "
 
 void usage(void) {
+	ops->ping_end("Usage: ping"
+				  " [-"
+				  "aAbBdDfhLnOqrRUvV"
+				  "]"
+				  " [-c count]"
+				  " [-i interval]"
+				  " [-I interface]"
+				  USAGE_NEWLINE
+				  " [-m mark]"
+				  " [-M pmtudisc_option]"
+				  " [-l preload]"
+				  " [-p pattern]"
+				  " [-Q tos]"
+				  USAGE_NEWLINE
+				  " [-s packetsize]"
+				  " [-S sndbuf]"
+				  " [-t ttl]"
+				  " [-T timestamp_option]"
+				  USAGE_NEWLINE
+				  " [-w deadline]"
+				  " [-W timeout]"
+				  " [hop1 ...] destination"
+				  "\n"
+	);
 	printf("Usage: ping"
 		" [-"
 			"aAbBdDfhLnOqrRUvV"
