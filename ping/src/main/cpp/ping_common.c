@@ -256,10 +256,9 @@ static int fill(char *patp)
 	return 0;
 }
 
-int common_options(int ch)
-{
+int common_options(int ch) {
 	int result = 0;
-	switch(ch) {
+	switch (ch) {
 		case 'a':
 			options |= F_AUDIBLE;
 			break;
@@ -641,6 +640,7 @@ void sock_setmark(int icmp_sock) {
 			/* we probably dont wanna exit since old kernels
 			 * dont support mark ..
 			*/
+			ops->ping_error("Warning: Failed to set mark %d", mark);
 			fprintf(stderr, "Warning: Failed to set mark %d\n", mark);
 		}
 	}
@@ -660,12 +660,14 @@ int setup(int icmp_sock)
 		interval = 0;
 
 	if (uid && interval < MINUSERINTERVAL) {
+		ops->ping_error("ping: cannot flood; minimal interval, allowed for user, is %dms", MINUSERINTERVAL);
 		fprintf(stderr, "ping: cannot flood; minimal interval, allowed for user, is %dms\n", MINUSERINTERVAL);
 		result = 2;
         return result;
 	}
 
 	if (interval >= INT_MAX/preload) {
+		ops->ping_error("ping: illegal preload and/or interval");
 		fprintf(stderr, "ping: illegal preload and/or interval\n");
         result = 2;
         return result;
@@ -680,8 +682,10 @@ int setup(int icmp_sock)
 #ifdef SO_TIMESTAMP
 	if (!(options&F_LATENCY)) {
 		int on = 1;
-		if (setsockopt(icmp_sock, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)))
+		if (setsockopt(icmp_sock, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on))) {
 			fprintf(stderr, "Warning: no SO_TIMESTAMP support, falling back to SIOCGSTAMP\n");
+		}
+
 	}
 #endif
 
@@ -974,22 +978,34 @@ restamp:
 		if (hops >= 0)
 			printf(" ttl=%d", hops);
 
+		struct icmphdr *icp = (struct icmphdr *)icmph;
+
 		if (cc < datalen+8) {
 			printf(" (truncated)\n");
+			char json[] = "{\"bytes\":%d,\"ip\":\"%s\",\"icmp_seq\": %u, \"ttl\":%d, \"truncated\":1, \"time\":-1}";
+			ops->ping_message(json, cc, from, ntohs(icp->un.echo.sequence), hops);
 			return 1;
 		}
 		if (timing) {
-			if (triptime >= 100000)
+			if (triptime >= 100000) {
 				printf(" time=%ld ms", triptime/1000);
-			else if (triptime >= 10000)
+				char json[] = "{\"bytes\":%d,\"ip\":\"%s\",\"icmp_seq\": %u, \"ttl\":%d, \"truncated\":0, \"time\":%ld}";
+				ops->ping_message(json, cc,from, ntohs(icp->un.echo.sequence), hops, triptime/1000);
+			} else if (triptime >= 10000) {
 				printf(" time=%ld.%01ld ms", triptime/1000,
-				       (triptime%1000)/100);
-			else if (triptime >= 1000)
-				printf(" time=%ld.%02ld ms", triptime/1000,
-				       (triptime%1000)/10);
-			else
-				printf(" time=%ld.%03ld ms", triptime/1000,
-				       triptime%1000);
+					   (triptime%1000)/100);
+				char json[] = "{\"bytes\":%d,\"ip\":\"%s\",\"icmp_seq\": %u, \"ttl\":%d, \"truncated\":0, \"time\":%ld.%01ld}";
+				ops->ping_message(json, cc,from, ntohs(icp->un.echo.sequence), hops, triptime/1000, (triptime%1000)/100);
+			} else if (triptime >= 1000) {
+				printf(" time=%ld.%02ld ms", triptime/1000, (triptime%1000)/10);
+				char json[] = "{\"bytes\":%d,\"ip\":\"%s\",\"icmp_seq\": %u, \"ttl\":%d, \"truncated\":0, \"time\":%ld.%02ld}";
+				ops->ping_message(json, cc,from, ntohs(icp->un.echo.sequence), hops, triptime/1000, (triptime%1000)/100);
+			} else {
+				printf(" time=%ld.%03ld ms", triptime/1000, triptime%1000);
+				char json[] = "{\"bytes\":%d,\"ip\":\"%s\",\"icmp_seq\": %u, \"ttl\":%d, \"truncated\":0, \"time\":%ld.%03ld}";
+				ops->ping_message(json, cc,from, ntohs(icp->un.echo.sequence), hops, triptime/1000, triptime%1000);
+			}
+
 		}
 		if (dupflag)
 			printf(" (DUP!)");
@@ -1044,20 +1060,29 @@ void finish(void)
 
 	putchar('\n');
 	fflush(stdout);
+	char msg[200];
 	printf("--- %s ping statistics ---\n", hostname);
 	printf("%ld packets transmitted, ", ntransmitted);
 	printf("%ld received", nreceived);
-	if (nrepeats)
+
+	if (nrepeats) {
 		printf(", +%ld duplicates", nrepeats);
-	if (nchecksum)
+	}
+
+	if (nchecksum) {
 		printf(", +%ld corrupted", nchecksum);
-	if (nerrors)
+	}
+
+	if (nerrors) {
 		printf(", +%ld errors", nerrors);
+	}
+	int percent = -1;
+	long time = 1000*tv.tv_sec+tv.tv_usec/1000;
 	if (ntransmitted) {
-		printf(", %d%% packet loss",
-		       (int) ((((long long)(ntransmitted - nreceived)) * 100) /
-			      ntransmitted));
-		printf(", time %ldms", 1000*tv.tv_sec+tv.tv_usec/1000);
+		percent = (int) ((((long long)(ntransmitted - nreceived)) * 100) /
+							 ntransmitted);
+		printf(", %d%% packet loss", percent);
+		printf(", time %ldms", time);
 	}
 	putchar('\n');
 
@@ -1074,7 +1099,26 @@ void finish(void)
 		       (long)tmdev/1000, (long)tmdev%1000
 		       );
 		comma = ", ";
+		char json[] = "{\"hostname\":\"%s\", \"transmitted\":%ld,\"received\":%ld,\"loss\":\"%d%%\","
+					  "\"time\": %ld, \"rtt_min\":%ld.%03ld, \"rtt_avg\":%lu.%03ld, "
+					  "\"rtt_max\":%ld.%03ld, \"rtt_mdev\":%ld.%03ld,"
+					  "\"duplicates\":%ld, \"checksum\":%ld, \"errors\":%ld}";
+
+		ops->ping_statistics(json, hostname, ntransmitted, nreceived, percent, time,
+						  (long)tmin/1000, (long)tmin%1000,
+						  (unsigned long)(tsum/1000), (long)(tsum%1000),
+						  (long)tmax/1000, (long)tmax%1000,
+						  (long)tmdev/1000, (long)tmdev%1000, nrepeats, nchecksum, nerrors);
+	} else {
+		char json[] = "{\"hostname\":\"%s\", \"transmitted\":%ld,\"received\":%ld,\"loss\":\"%d%%\","
+					  "\"time\": %ld, \"rtt_min\":0, \"rtt_avg\":0, "
+					  "\"rtt_max\":0, \"rtt_mdev\":0,"
+					  "\"duplicates\":%ld, \"checksum\":%ld, \"errors\":%ld}";
+		ops->ping_statistics(json, hostname, ntransmitted, nreceived, percent, time, nrepeats, nchecksum, nerrors);
 	}
+
+
+
 	if (pipesize > 1) {
 		printf("%spipe %d", comma, pipesize);
 		comma = ", ";
@@ -1086,7 +1130,6 @@ void finish(void)
 	}
 	putchar('\n');
 }
-
 
 void status(void)
 {

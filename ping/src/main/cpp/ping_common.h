@@ -45,8 +45,8 @@
 
 #include <android/log.h>
 
-#define TAG "Ping"
-#define printf(...) __android_log_print(ANDROID_LOG_DEBUG, TAG,  __VA_ARGS__)
+//#define TAG "Ping"
+//#define printf(...) __android_log_print(ANDROID_LOG_DEBUG, TAG,  __VA_ARGS__)
 
 #define	DEFDATALEN	(64 - 8)	/* default data length */
 
@@ -104,10 +104,12 @@ typedef __u32	bitmap_t;
 # error Please MAX_DUP_CHK and/or BITMAP_SHIFT
 #endif
 
-typedef struct{
+typedef struct {
+	void (*ping_enter) (const char* fmt, ...);
 	void (*ping_start) (const char* fmt, ...);  //called when ping start
 	void (*ping_message) (const char* fmt, ...);
 	void (*ping_error) (const char* fmt, ...); //ping_error will not be called when no error happen.
+	void (*ping_statistics) (const char* fmt, ...);
 	void (*ping_end) (const char* fmt, ...); //ping_end will not be called when error happen.
 } ping_ops;
 

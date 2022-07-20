@@ -59,7 +59,7 @@ char copyright[] =
  */
 
 #include "ping_common.h"
-#include "pingimpl.h"
+#include "ping_impl.h"
 
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
@@ -115,8 +115,7 @@ struct sockaddr_in source;
 char *device;
 int pmtudisc = -1;
 
-int
-ping(int argc, char **argv, ping_ops *pingOps)
+int ping(int argc, char **argv, ping_ops *pingOps)
 {
     ops = pingOps;
 	struct hostent *hp;
@@ -354,21 +353,23 @@ ping(int argc, char **argv, ping_ops *pingOps)
 			enable_capability_raw();
 			rc = setsockopt(probe_fd, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(device)+1);
 			disable_capability_raw();
-
 			if (rc == -1) {
 				if (IN_MULTICAST(ntohl(dst.sin_addr.s_addr))) {
 					struct ip_mreqn imr;
 					if (ioctl(probe_fd, SIOCGIFINDEX, &ifr) < 0) {
+						ops->ping_error("ping: unknown iface %s", device);
 						fprintf(stderr, "ping: unknown iface %s\n", device);
 						return 2;
 					}
 					memset(&imr, 0, sizeof(imr));
 					imr.imr_ifindex = ifr.ifr_ifindex;
 					if (setsockopt(probe_fd, SOL_IP, IP_MULTICAST_IF, &imr, sizeof(imr)) == -1) {
+						ops->ping_error("ping: IP_MULTICAST_IF");
 						perror("ping: IP_MULTICAST_IF");
 						return 2;
 					}
 				} else {
+					ops->ping_error("ping: SO_BINDTODEVICE");
 					perror("ping: SO_BINDTODEVICE");
 					return 2;
 				}
@@ -376,8 +377,10 @@ ping(int argc, char **argv, ping_ops *pingOps)
 		}
 
 		if (settos &&
-		    setsockopt(probe_fd, IPPROTO_IP, IP_TOS, (char *)&settos, sizeof(int)) < 0)
+		    setsockopt(probe_fd, IPPROTO_IP, IP_TOS, (char *)&settos, sizeof(int)) < 0) {
 			perror("Warning: error setting QOS sockopts");
+			ops->ping_error("Warning: error setting QOS sockopts");
+		}
 
 		dst.sin_port = htons(1025);
 		if (nroute)
@@ -388,26 +391,31 @@ ping(int argc, char **argv, ping_ops *pingOps)
 		if (connect(probe_fd, (struct sockaddr*)&dst, sizeof(dst)) == -1) {
 			if (errno == EACCES) {
 				if (broadcast_pings == 0) {
+					ops->ping_error("Do you want to ping broadcast? Then -b");
 					fprintf(stderr, "Do you want to ping broadcast? Then -b\n");
 					return 2;
 				}
 				fprintf(stderr, "WARNING: pinging broadcast address\n");
 				if (setsockopt(probe_fd, SOL_SOCKET, SO_BROADCAST,
 					       &broadcast_pings, sizeof(broadcast_pings)) < 0) {
+					ops->ping_error("can't set broadcasting");
 					perror ("can't set broadcasting");
 					return 2;
 				}
 				if (connect(probe_fd, (struct sockaddr*)&dst, sizeof(dst)) == -1) {
+					ops->ping_error("connect error");
 					perror("connect");
 					return 2;
 				}
 			} else {
+				ops->ping_error("connect error");
 				perror("connect");
 				return 2;
 			}
 		}
 		alen = sizeof(source);
 		if (getsockname(probe_fd, (struct sockaddr*)&source, &alen) == -1) {
+			ops->ping_error("getsockname error");
 			perror("getsockname");
 			return 2;
 		}
@@ -420,6 +428,7 @@ ping(int argc, char **argv, ping_ops *pingOps)
 
 			ret = getifaddrs(&ifa0);
 			if (ret) {
+				ops->ping_error("gatifaddrs() failed.");
 				fprintf(stderr, "gatifaddrs() failed.\n");
 				return 2;
 			}
@@ -432,8 +441,11 @@ ping(int argc, char **argv, ping_ops *pingOps)
 					break;
 			}
 			freeifaddrs(ifa0);
-			if (!ifa)
+			if (!ifa){
+				ops->ping_error("ping: Warning: source address might be selected on device other than %s.");
 				fprintf(stderr, "ping: Warning: source address might be selected on device other than %s.\n", device);
+			}
+
 		}
 #endif
 		close(probe_fd);
@@ -444,6 +456,7 @@ ping(int argc, char **argv, ping_ops *pingOps)
 
 	if (icmp_sock < 0) {
 		errno = socket_errno;
+		ops->ping_error("ping: icmp open socket");
 		perror("ping: icmp open socket");
 		return 2;
 	}
@@ -454,6 +467,7 @@ ping(int argc, char **argv, ping_ops *pingOps)
 		memset(&ifr, 0, sizeof(ifr));
 		strncpy(ifr.ifr_name, device, IFNAMSIZ-1);
 		if (ioctl(icmp_sock, SIOCGIFINDEX, &ifr) < 0) {
+			ops->ping_error("ping: unknown iface %s", device);
 			fprintf(stderr, "ping: unknown iface %s\n", device);
 			return 2;
 		}
@@ -464,10 +478,12 @@ ping(int argc, char **argv, ping_ops *pingOps)
 	if (broadcast_pings || IN_MULTICAST(ntohl(whereto.sin_addr.s_addr))) {
 		if (uid) {
 			if (interval < 1000) {
+				ops->ping_error("ping: broadcast ping with too short interval.");
 				fprintf(stderr, "ping: broadcast ping with too short interval.\n");
 				return 2;
 			}
 			if (pmtudisc >= 0 && pmtudisc != IP_PMTUDISC_DO) {
+				ops->ping_error("ping: broadcast ping does not fragment.");
 				fprintf(stderr, "ping: broadcast ping does not fragment.\n");
 				return 2;
 			}
@@ -478,6 +494,7 @@ ping(int argc, char **argv, ping_ops *pingOps)
 
 	if (pmtudisc >= 0) {
 		if (setsockopt(icmp_sock, SOL_IP, IP_MTU_DISCOVER, &pmtudisc, sizeof(pmtudisc)) == -1) {
+			ops->ping_error("ping: IP_MTU_DISCOVER");
 			perror("ping: IP_MTU_DISCOVER");
 			return 2;
 		}
@@ -485,6 +502,7 @@ ping(int argc, char **argv, ping_ops *pingOps)
 
 	if ((options&F_STRICTSOURCE) &&
 	    bind(icmp_sock, (struct sockaddr*)&source, sizeof(source)) == -1) {
+		ops->ping_error("bind error");
 		perror("bind");
 		return 2;
 	}
@@ -497,18 +515,26 @@ ping(int argc, char **argv, ping_ops *pingOps)
 			      (1<<ICMP_PARAMETERPROB)|
 			      (1<<ICMP_REDIRECT)|
 			      (1<<ICMP_ECHOREPLY));
-		if (setsockopt(icmp_sock, SOL_RAW, ICMP_FILTER, (char*)&filt, sizeof(filt)) == -1)
+		if (setsockopt(icmp_sock, SOL_RAW, ICMP_FILTER, (char*)&filt, sizeof(filt)) == -1) {
+			ops->ping_error("WARNING: setsockopt(ICMP_FILTER)");
 			perror("WARNING: setsockopt(ICMP_FILTER)");
+		}
+
 	}
 
 	hold = 1;
-	if (setsockopt(icmp_sock, SOL_IP, IP_RECVERR, (char *)&hold, sizeof(hold)))
+	if (setsockopt(icmp_sock, SOL_IP, IP_RECVERR, (char *)&hold, sizeof(hold))) {
+		ops->ping_error("WARNING: your kernel is veeery old. No problems.");
 		fprintf(stderr, "WARNING: your kernel is veeery old. No problems.\n");
+	}
+
 	if (using_ping_socket) {
-		if (setsockopt(icmp_sock, SOL_IP, IP_RECVTTL, (char *)&hold, sizeof(hold)))
+		if (setsockopt(icmp_sock, SOL_IP, IP_RECVTTL, (char *)&hold, sizeof(hold))) {
 			perror("WARNING: setsockopt(IP_RECVTTL)");
-		if (setsockopt(icmp_sock, SOL_IP, IP_RETOPTS, (char *)&hold, sizeof(hold)))
+		}
+		if (setsockopt(icmp_sock, SOL_IP, IP_RETOPTS, (char *)&hold, sizeof(hold))) {
 			perror("WARNING: setsockopt(IP_RETOPTS)");
+		}
 	}
 
 	/* record route option */
@@ -520,6 +546,7 @@ ping(int argc, char **argv, ping_ops *pingOps)
 		rspace[1+IPOPT_OFFSET] = IPOPT_MINOFF;
 		optlen = 40;
 		if (setsockopt(icmp_sock, IPPROTO_IP, IP_OPTIONS, rspace, sizeof(rspace)) < 0) {
+			ops->ping_error("ping: record route");
 			perror("ping: record route");
 			return 2;
 		}
@@ -539,6 +566,7 @@ ping(int argc, char **argv, ping_ops *pingOps)
 		if (setsockopt(icmp_sock, IPPROTO_IP, IP_OPTIONS, rspace, rspace[1]) < 0) {
 			rspace[3] = 2;
 			if (setsockopt(icmp_sock, IPPROTO_IP, IP_OPTIONS, rspace, rspace[1]) < 0) {
+				ops->ping_error("ping: ts option");
 				perror("ping: ts option");
 				return 2;
 			}
@@ -557,6 +585,7 @@ ping(int argc, char **argv, ping_ops *pingOps)
 			*(__u32*)&rspace[4+i*4] = route[i];
 
 		if (setsockopt(icmp_sock, IPPROTO_IP, IP_OPTIONS, rspace, 4 + nroute*4) < 0) {
+			ops->ping_error("ping: record route");
 			perror("ping: record route");
 			return 2;
 		}
@@ -572,6 +601,7 @@ ping(int argc, char **argv, ping_ops *pingOps)
 	if (broadcast_pings) {
 		if (setsockopt(icmp_sock, SOL_SOCKET, SO_BROADCAST,
 			       &broadcast_pings, sizeof(broadcast_pings)) < 0) {
+			ops->ping_error("ping: can't set broadcasting");
 			perror ("ping: can't set broadcasting");
 			return 2;
 		}
@@ -581,6 +611,7 @@ ping(int argc, char **argv, ping_ops *pingOps)
 		int loop = 0;
 		if (setsockopt(icmp_sock, IPPROTO_IP, IP_MULTICAST_LOOP,
 							&loop, 1) == -1) {
+			ops->ping_error("ping: can't disable multicast loopback");
 			perror ("ping: can't disable multicast loopback");
 			return 2;
 		}
@@ -589,11 +620,13 @@ ping(int argc, char **argv, ping_ops *pingOps)
 		int ittl = ttl;
 		if (setsockopt(icmp_sock, IPPROTO_IP, IP_MULTICAST_TTL,
 							&ttl, 1) == -1) {
+			ops->ping_error("ping: can't set multicast time-to-live");
 			perror ("ping: can't set multicast time-to-live");
 			return 2;
 		}
 		if (setsockopt(icmp_sock, IPPROTO_IP, IP_TTL,
 							&ittl, sizeof(ittl)) == -1) {
+			ops->ping_error("ping: can't set unicast time-to-live");
 			perror ("ping: can't set unicast time-to-live");
 			return 2;
 		}
@@ -601,10 +634,12 @@ ping(int argc, char **argv, ping_ops *pingOps)
 
 	if (datalen > 0xFFFF - 8 - optlen - 20) {
 		if (uid || datalen > sizeof(outpack)-8) {
+			ops->ping_error("Error: packet size %d is too large. Maximum is %d\n", datalen, 0xFFFF-8-20-optlen);
 			fprintf(stderr, "Error: packet size %d is too large. Maximum is %d\n", datalen, 0xFFFF-8-20-optlen);
 			return 2;
 		}
 		/* Allow small oversize to root yet. It will cause EMSGSIZE. */
+		ops->ping_error("WARNING: packet size %d is too large. Maximum is %d\n", datalen, 0xFFFF-8-20-optlen);
 		fprintf(stderr, "WARNING: packet size %d is too large. Maximum is %d\n", datalen, 0xFFFF-8-20-optlen);
 	}
 
@@ -612,6 +647,7 @@ ping(int argc, char **argv, ping_ops *pingOps)
 		timing = 1;
 	packlen = datalen + MAXIPLEN + MAXICMPLEN;
 	if (!(packet = (u_char *)malloc((u_int)packlen))) {
+		ops->ping_error("ping: out of memory.");
 		fprintf(stderr, "ping: out of memory.\n");
 		return 2;
 	}
@@ -620,16 +656,21 @@ ping(int argc, char **argv, ping_ops *pingOps)
 	if (device || (options&F_STRICTSOURCE))
 		printf("from %s %s: ", inet_ntoa(source.sin_addr), device ?: "");
 	printf("%d(%d) bytes of data.\n", datalen, datalen+8+optlen+20);
+	ops->ping_start("PING %s (%s) from %d(%d) bytes of data.", hostname,
+					inet_ntoa(whereto.sin_addr), datalen, datalen+8+optlen+20);
 
     if (setup(icmp_sock) != 0) {
         return 2;
     }
 
 	main_loop(icmp_sock, packet, packlen);
-
+	ops->ping_end("Ping end");
     return 0;
 }
 
+void stop_ping() {
+	exiting = 1;
+}
 
 int receive_error_msg()
 {
@@ -1454,7 +1495,7 @@ void usage(void) {
 				  " [hop1 ...] destination"
 				  "\n"
 	);
-	printf("Usage: ping"
+	fprintf(stderr, "Usage: ping"
 		" [-"
 			"aAbBdDfhLnOqrRUvV"
 		"]"
