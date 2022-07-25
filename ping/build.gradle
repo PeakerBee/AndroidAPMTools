@@ -1,5 +1,7 @@
 plugins {
     id 'com.android.library'
+    id 'maven-publish'
+    id 'signing'
 }
 
 android {
@@ -8,6 +10,8 @@ android {
     defaultConfig {
         minSdk 26
         targetSdk 32
+        versionCode 1
+        versionName "0.0.4"
         consumerProguardFiles "consumer-rules.pro"
         externalNativeBuild {
             cmake {
@@ -35,6 +39,128 @@ android {
     ndkVersion '24.0.8215888'
 }
 
+
+
 dependencies {
 
+}
+
+task generateSourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier 'sources'
+}
+
+task generateJavaDoc(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+    android.libraryVariants.all { variant ->
+        if (variant.name == 'release') {
+            owner.classpath += variant.javaCompile.classpath
+        }
+    }
+    source = android.sourceSets.main.java.srcDirs
+    exclude '**/R.java', '**/R.*.html', '**/index.html'
+}
+
+task generateJavaDocJar(type: Jar, dependsOn: generateJavaDoc) {
+    archiveClassifier.set('javadoc')
+    from generateJavaDoc.destinationDir
+}
+
+ext["signing.keyId"] = '9E4E3341' //签名的密钥后8位
+ext["signing.password"] = '123456789'  //签名设置的密码
+ext["signing.secretKeyRingFile"] = 'secring.gpg' //生成的secring.gpg文件目录
+ext["ossrhUsername"] = ''  //sonatype用户名
+ext["ossrhPassword"] = ''  //sonatype密码
+
+File secretPropsFile = project.rootProject.file('local.properties')
+if (secretPropsFile.exists()) {
+    println "Found secret props file, loading props"
+    Properties p = new Properties()
+    p.load(new FileInputStream(secretPropsFile))
+    p.each { name, value ->
+        ext[name] = value
+    }
+} else {
+    println "No props file, loading env vars"
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                // The coordinates of the library, being set from variables that
+                from components.release
+                groupId = 'io.github.peakerbee'
+                artifactId = 'ping'
+                version = android.defaultConfig.versionName
+
+                artifact generateSourcesJar
+                artifact generateJavaDocJar
+                // Self-explanatory metadata for the most part
+                pom {
+                    //第 3 处
+                    name = "JavaPingTool"
+                    description = 'Java Ping Tool'
+
+                    url = 'https://github.com/PeakerBee/AndroidNetTools'
+                    licenses {
+                        license {
+                            name = 'The Apache License, Version 2.0'
+                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'peaker'
+                            name = 'peaker'
+                            email = 'peaker.chen@foxmail.com'
+                        }
+                    }
+                    // Version control info, if you're using GitHub, follow the format as seen here
+                    scm {
+                        connection = 'scm:git@github.com:PeakerBee/AndroidNetTools.git'
+                        developerConnection = 'scm:git@github.com:PeakerBee/AndroidNetTools.git'
+                        url = 'https://github.com/PeakerBee/AndroidNetTools.git/tree/main'
+                    }
+                    // A slightly hacky fix so that your POM will include any transitive dependencies
+                    // that your library builds upon
+                    withXml {
+                        def dependenciesNode = asNode().appendNode('dependencies')
+
+                        project.configurations.implementation.allDependencies.each {
+                            def dependencyNode = dependenciesNode.appendNode('dependency')
+                            dependencyNode.appendNode('groupId', it.group)
+                            dependencyNode.appendNode('artifactId', it.name)
+                            dependencyNode.appendNode('version', it.version)
+                        }
+                    }
+                }
+            }
+        }
+        repositories {
+            // The repository to publish to, Sonatype/MavenCentral
+            maven {
+
+                name = "JavaPingTool"
+                def releasesRepoUrl = "https://s01.oss.sonatype.org/content/repositories/releases/"
+                def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+                // You only need this if you want to publish snapshots, otherwise just set the URL
+                // to the release repo directly
+                url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+
+                // The username and password we've fetched earlier
+                credentials {
+                    username ossrhUsername
+                    password ossrhPassword
+                }
+            }
+        }
+    }
+}
+
+
+
+signing {
+    sign publishing.publications
 }
