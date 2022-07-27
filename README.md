@@ -6,24 +6,13 @@ Disappointed by the lack of good ping apis in android, I developed Java Ping Too
 
 ## Usage
 ### Add as dependency
-This library is not yet released in Maven Central, until then you can add as a library module or use JitPack.io
+This library is released in Maven Central
 
-add remote maven url
-
-```groovy
-
-    repositories {
-        maven {
-            url "https://jitpack.io"
-        }
-    }
-```
-
-then add a library dependency. **Remember** to check for latest release [here](https://github.com/PeakerBee/AndroidNetTools/releases)
+then add a library dependency.**Remember** to check for latest release [here](https://github.com/PeakerBee/AndroidNetTools/releases)
 
 ```groovy
     dependencies {
-        implementation 'com.github.PeakerBee:AndroidNetTools:0.0.1'
+        implementation 'io.github.peakerbee:ping:0.0.4'
     }
 ```
 ### Add permission
@@ -37,39 +26,39 @@ Requires internet permission (obviously...)
 Only Support IPV4
 
 ```java
-    Ping ping = new Ping(new Ping.Callback() {
+    Ping ping = Ping.onAddress("baidu.com");
+    ping.setTimes(5);
+    new Thread(() -> ping.startPing(new Ping.Callback() {
         @Override
         public void onEnter(String msg) {
             Log.i(TAG, "onEnter: " + msg);
         }
-        
+
         @Override
         public void onStart(String msg) {
             Log.i(TAG, "onStart: " + msg);
         }
-        
+
         @Override
-        public void onMessage(IcmpRes res) {
-            Log.i(TAG, "onMessage: " + res);
+        public void onResult(PingResult res) {
+            Log.i(TAG, "onResult: " + res);
         }
-        
+
         @Override
         public void onError(String msg) {
             Log.i(TAG, "onError: " + msg);
         }
-        
+
         @Override
         public void onStatistics(PingStatistics statistics) {
             Log.i(TAG, "onStatistics: " + statistics);
         }
-        
+
         @Override
         public void onEnd(String msg) {
             Log.i(TAG, "onEnd: " + msg);
         }
-    });
-
-     new Thread(() -> ping.startPing("-c 3 baidu.com")).start();
+    })).start();
 ```
 
 ## Building
