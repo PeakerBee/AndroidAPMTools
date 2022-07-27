@@ -7,7 +7,7 @@ android {
 
     defaultConfig {
         applicationId "android.net.tool.demo"
-        minSdk 26
+        minSdk 28
         targetSdk 32
         versionCode 1
         versionName "1.0"
@@ -30,8 +30,8 @@ android {
 }
 
 dependencies {
-//    implementation project(':ping')
-    implementation 'com.github.PeakerBee:AndroidNetTools:0.0.1'
+    implementation project(':ping')
+//    implementation 'io.github.peakerbee:ping:0.0.4'
     implementation 'androidx.appcompat:appcompat:1.4.2'
     implementation 'com.google.android.material:material:1.6.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'

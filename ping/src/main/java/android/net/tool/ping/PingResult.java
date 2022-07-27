@@ -1,6 +1,6 @@
 package android.net.tool.ping;
 
-public class IcmpRes {
+public class PingResult {
 
     private int bytes;
 

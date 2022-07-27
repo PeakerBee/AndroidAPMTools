@@ -107,7 +107,7 @@ typedef __u32	bitmap_t;
 typedef struct {
 	void (*ping_enter) (const char* fmt, ...);
 	void (*ping_start) (const char* fmt, ...);  //called when ping start
-	void (*ping_message) (const char* fmt, ...);
+	void (*ping_result) (const char* fmt, ...);
 	void (*ping_error) (const char* fmt, ...); //ping_error will not be called when no error happen.
 	void (*ping_statistics) (const char* fmt, ...);
 	void (*ping_end) (const char* fmt, ...); //ping_end will not be called when error happen.

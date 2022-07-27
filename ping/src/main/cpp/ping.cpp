@@ -1,7 +1,7 @@
 #include <jni.h>
 #include <malloc.h>
 #include <string.h>
-#include "ping_impl.h"
+#include "ping_run.h"
 
 
 typedef struct {
@@ -64,7 +64,7 @@ void on_start(const char* fmt, ...) {
 }
 
 
-void on_message(const char* fmt, ...) {
+void on_result(const char* fmt, ...) {
     if (fmt == NULL) {
         jstring value = (callback2Java->jniEnv)->NewStringUTF("");
         (callback2Java->jniEnv)->CallVoidMethod(callback2Java->jObject, callback2Java->onMessageMethodId, value);
@@ -178,11 +178,10 @@ extern "C" JNIEXPORT void JNICALL Java_android_net_tool_ping_Ping_nativeStartPin
 
     jsize stringArrayLength = env->GetArrayLength(stringArray);
 
-    char* args[stringArrayLength + 1];
-    args[0] = strdup("ping");
+    char* args[stringArrayLength];
 
-    for (int i = 1; i < stringArrayLength + 1; i++) {
-        jobject string_object = env->GetObjectArrayElement(stringArray, i - 1);
+    for (int i = 0; i < stringArrayLength; i++) {
+        jobject string_object = env->GetObjectArrayElement(stringArray, i);
         jstring string_java = static_cast<jstring>(string_object);
         const char * param = env->GetStringUTFChars(string_java, NULL);
         args[i] = strdup(param);
@@ -192,15 +191,15 @@ extern "C" JNIEXPORT void JNICALL Java_android_net_tool_ping_Ping_nativeStartPin
     ping_ops ops = {
             .ping_enter = on_enter,
             .ping_start = on_start,
-            .ping_message = on_message,
+            .ping_result = on_result,
             .ping_error = on_error,
             .ping_statistics = on_statistics,
             .ping_end = on_end,
     };
     ops.ping_enter("Ping enter");
-    ping(stringArrayLength + 1, args, &ops);
+    ping(stringArrayLength, args, &ops);
 
-    for (int i = 0; i < stringArrayLength + 1; i++) {
+    for (int i = 0; i < stringArrayLength; i++) {
         free(args[i]);
     }
     free(callback2Java);

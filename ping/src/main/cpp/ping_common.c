@@ -983,27 +983,27 @@ restamp:
 		if (cc < datalen+8) {
 			printf(" (truncated)\n");
 			char json[] = "{\"bytes\":%d,\"ip\":\"%s\",\"icmp_seq\": %u, \"ttl\":%d, \"truncated\":1, \"time\":-1}";
-			ops->ping_message(json, cc, from, ntohs(icp->un.echo.sequence), hops);
+			ops->ping_result(json, cc, from, ntohs(icp->un.echo.sequence), hops);
 			return 1;
 		}
 		if (timing) {
 			if (triptime >= 100000) {
 				printf(" time=%ld ms", triptime/1000);
 				char json[] = "{\"bytes\":%d,\"ip\":\"%s\",\"icmp_seq\": %u, \"ttl\":%d, \"truncated\":0, \"time\":%ld}";
-				ops->ping_message(json, cc,from, ntohs(icp->un.echo.sequence), hops, triptime/1000);
+				ops->ping_result(json, cc,from, ntohs(icp->un.echo.sequence), hops, triptime/1000);
 			} else if (triptime >= 10000) {
 				printf(" time=%ld.%01ld ms", triptime/1000,
 					   (triptime%1000)/100);
 				char json[] = "{\"bytes\":%d,\"ip\":\"%s\",\"icmp_seq\": %u, \"ttl\":%d, \"truncated\":0, \"time\":%ld.%01ld}";
-				ops->ping_message(json, cc,from, ntohs(icp->un.echo.sequence), hops, triptime/1000, (triptime%1000)/100);
+				ops->ping_result(json, cc,from, ntohs(icp->un.echo.sequence), hops, triptime/1000, (triptime%1000)/100);
 			} else if (triptime >= 1000) {
 				printf(" time=%ld.%02ld ms", triptime/1000, (triptime%1000)/10);
 				char json[] = "{\"bytes\":%d,\"ip\":\"%s\",\"icmp_seq\": %u, \"ttl\":%d, \"truncated\":0, \"time\":%ld.%02ld}";
-				ops->ping_message(json, cc,from, ntohs(icp->un.echo.sequence), hops, triptime/1000, (triptime%1000)/100);
+				ops->ping_result(json, cc,from, ntohs(icp->un.echo.sequence), hops, triptime/1000, (triptime%1000)/100);
 			} else {
 				printf(" time=%ld.%03ld ms", triptime/1000, triptime%1000);
 				char json[] = "{\"bytes\":%d,\"ip\":\"%s\",\"icmp_seq\": %u, \"ttl\":%d, \"truncated\":0, \"time\":%ld.%03ld}";
-				ops->ping_message(json, cc,from, ntohs(icp->un.echo.sequence), hops, triptime/1000, triptime%1000);
+				ops->ping_result(json, cc,from, ntohs(icp->un.echo.sequence), hops, triptime/1000, triptime%1000);
 			}
 
 		}

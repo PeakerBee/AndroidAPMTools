@@ -59,7 +59,7 @@ char copyright[] =
  */
 
 #include "ping_common.h"
-#include "ping_impl.h"
+#include "ping_run.h"
 
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
