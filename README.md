@@ -1,5 +1,5 @@
-# AndroidNetTools
-
+# AndroidAPMTools
+Android App Performance Monitoring Tool Set.
 Disappointed by the lack of good ping apis in android, I developed Java Ping Tool that call ping native interface by jni for everyday android development.
 
 * support all ping commands
