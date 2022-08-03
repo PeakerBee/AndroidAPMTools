@@ -1,9 +1,10 @@
-package android.net.tool.demo;
+package android.apm.tool.demo;
 
 import android.app.Activity;
-import android.net.tool.ping.Ping;
-import android.net.tool.ping.PingResult;
-import android.net.tool.ping.PingStatistics;
+import android.apm.tool.ping.Ping;
+import android.apm.tool.ping.PingResult;
+import android.apm.tool.ping.PingStatistics;
+import android.net.tool.demo.R;
 import android.os.Bundle;
 import android.util.Log;
 

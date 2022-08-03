@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_centerInParent="true"
-    tools:context="android.net.tool.demo.MainActivity">
+    tools:context="android.apm.tool.demo.MainActivity">
 
     <TextView
         android:id="@+id/sample_text"

@@ -21,6 +21,6 @@ dependencyResolutionManagement {
         maven { url 'https://jitpack.io' }
     }
 }
-rootProject.name = "AndroidNetTools"
+rootProject.name = "AndroidAPMTools"
 include ':app'
 include ':ping'

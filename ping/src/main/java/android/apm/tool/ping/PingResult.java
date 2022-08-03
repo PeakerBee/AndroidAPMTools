@@ -1,4 +1,4 @@
-package android.net.tool.ping;
+package android.apm.tool.ping;
 
 public class PingResult {
 

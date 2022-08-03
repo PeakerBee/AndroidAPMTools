@@ -1,4 +1,4 @@
-package android.net.tool.demo;
+package android.apm.tool.demo;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -8,8 +8,6 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 
-import android.net.tool.ping.Ping;
-import android.net.tool.ping.PingStatistics;
 import android.util.Log;
 import java.net.InetAddress;
 import java.net.NetworkInterface;

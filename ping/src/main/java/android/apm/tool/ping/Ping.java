@@ -1,4 +1,4 @@
-package android.net.tool.ping;
+package android.apm.tool.ping;
 
 import android.os.Looper;
 import android.os.NetworkOnMainThreadException;
