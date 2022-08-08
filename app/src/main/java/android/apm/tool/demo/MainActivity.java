@@ -1,12 +1,15 @@
 package android.apm.tool.demo;
 
-import android.app.Activity;
+import android.apm.tool.fdtrack.FdTrack;
 import android.apm.tool.ping.Ping;
 import android.apm.tool.ping.PingResult;
 import android.apm.tool.ping.PingStatistics;
-import android.net.tool.demo.R;
+import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
+
+import com.chehejia.iot.connector.NodeConnector;
+import com.chehejia.iot.stream.pull.mesh.MeshNode;
 
 
 public class MainActivity extends Activity {
@@ -19,6 +22,18 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        testFdTrack();
+    }
+
+    private void testFdTrack() {
+        new Thread(() ->  {
+            MeshNode node = new MeshNode("one-map-app");
+            NodeConnector.connectVehProxy(node, "iot-cloud-proxy-service-cell0.chehejia.com", 11025);
+            new FdTrack().spawnFdLeakCheckThread();
+        }).start();
+    }
+
+    private void testPing() {
         ping.setTimes(5);
         new Thread(() -> ping.startPing(new Ping.Callback() {
             @Override
@@ -51,11 +66,5 @@ public class MainActivity extends Activity {
                 Log.i(TAG, "onEnd: " + msg);
             }
         })).start();
-//        new Handler().postDelayed(new Runnable() {
-//            @Override
-//            public void run() {
-//                ping.stopPing();
-//            }
-//        }, 10000);
     }
 }

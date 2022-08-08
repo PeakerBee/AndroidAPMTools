@@ -45,8 +45,8 @@
 
 #include <android/log.h>
 
-//#define TAG "Ping"
-//#define printf(...) __android_log_print(ANDROID_LOG_DEBUG, TAG,  __VA_ARGS__)
+#define TAG "Ping"
+#define printf(...) __android_log_print(ANDROID_LOG_DEBUG, TAG,  __VA_ARGS__)
 
 #define	DEFDATALEN	(64 - 8)	/* default data length */
 

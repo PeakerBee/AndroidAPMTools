@@ -6,8 +6,8 @@ android {
     compileSdk 32
 
     defaultConfig {
-        applicationId "android.net.tool.demo"
-        minSdk 28
+        applicationId "android.apm.tool.demo"
+        minSdk 30
         targetSdk 32
         versionCode 1
         versionName "1.0"
@@ -31,7 +31,11 @@ android {
 
 dependencies {
     implementation project(':ping')
-//    implementation 'io.github.peakerbee:ping:0.0.4'
+    implementation project(':fdtrack')
+//    implementation 'org.slf4j:slf4j-android:1.7.30'
+//    implementation 'org.slf4j:slf4j-api:1.7.36' //slf4j-api-1.7.30.jar
+//    implementation 'io.github.peakerbee:ping:0.0.5'
+    implementation 'com.chehejia.iot:node-connector:1.0.5'
     implementation 'androidx.appcompat:appcompat:1.4.2'
     implementation 'com.google.android.material:material:1.6.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
