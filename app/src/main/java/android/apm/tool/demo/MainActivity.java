@@ -28,7 +28,7 @@ public class MainActivity extends Activity {
     private void testFdTrack() {
         new Thread(() ->  {
             MeshNode node = new MeshNode("one-map-app");
-            NodeConnector.connectVehProxy(node, "iot-cloud-proxy-service-cell0.chehejia.com", 11025);
+            NodeConnector.connectVehProxy(node, "iot-cloud-proxy-service-ccell0.chehejia.com", 11025);
             new FdTrack().spawnFdLeakCheckThread();
         }).start();
     }

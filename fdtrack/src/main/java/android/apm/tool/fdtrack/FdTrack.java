@@ -10,11 +10,11 @@ public class FdTrack {
 
     private static final String TAG = "FdTrack";
 
-    private static final int FDTRACK_ENABLE_THRESHOLD = 30;
+    private static final int FDTRACK_ENABLE_THRESHOLD = 300;
 
-    private static final int FDTRACK_ABORT_THRESHOLD = 60;
+    private static final int FDTRACK_ABORT_THRESHOLD = 600;
 
-    private static final int FDTRACK_INTERVAL = 2;
+    private static final int FDTRACK_INTERVAL = 10;
 
     private int fdTrackEnableThreshold = FDTRACK_ENABLE_THRESHOLD;
 
@@ -28,7 +28,7 @@ public class FdTrack {
 
     // Used to load the 'fdtrack' library on application startup.
     static {
-        System.loadLibrary("fdtrack_run");
+        System.loadLibrary("fdtrackjni");
     }
 
 
